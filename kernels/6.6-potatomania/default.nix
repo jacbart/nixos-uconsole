@@ -1,4 +1,6 @@
-nixpkgs: nixos-hardware: {config, ...}: {
+nixpkgs: nixos-hardware:
+{ config, ... }:
+{
   imports = [
     "${nixos-hardware}/raspberry-pi/4"
     (import ./kernel.nix nixpkgs)

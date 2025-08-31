@@ -1,4 +1,6 @@
-nixpkgs: nixos-hardware: {config, ...}: {
+nixpkgs: nixos-hardware:
+{ config, ... }:
+{
   imports = [
     "${nixos-hardware}/raspberry-pi/4"
     (import ./kernel.nix nixpkgs)
@@ -66,23 +68,21 @@ nixpkgs: nixos-hardware: {config, ...}: {
   hardware.raspberry-pi."4".dwc2.enable = true;
   hardware.raspberry-pi."4".dwc2.dr_mode = "host";
   hardware.deviceTree.enable = true;
-  hardware.deviceTree.overlays =
-    (import ../clockworkpi-uconsole-overlays.nix)
-    ++ [
-      # {
-      #   name = "uconsole,cm4";
-      #   dtsFile = ./uconsole-overlay.dts;
-      #   filter = "bcm2711-rpi-cm4.dtb";
-      # }
-      {
-        name = "vc4-kms-v3d-pi4,cma-384";
-        dtboFile = "${config.boot.kernelPackages.kernel}/dtbs/overlays/vc4-kms-v3d-pi4.dtbo";
-        filter = "bcm2711-rpi-cm4.dtb";
-      }
-      {
-        name = "audremap,pins_12_13";
-        dtboFile = "${config.boot.kernelPackages.kernel}/dtbs/overlays/audremap.dtbo";
-        filter = "bcm2711-rpi-cm4.dtb";
-      }
-    ];
+  hardware.deviceTree.overlays = (import ../clockworkpi-uconsole-overlays.nix) ++ [
+    # {
+    #   name = "uconsole,cm4";
+    #   dtsFile = ./uconsole-overlay.dts;
+    #   filter = "bcm2711-rpi-cm4.dtb";
+    # }
+    {
+      name = "vc4-kms-v3d-pi4,cma-384";
+      dtboFile = "${config.boot.kernelPackages.kernel}/dtbs/overlays/vc4-kms-v3d-pi4.dtbo";
+      filter = "bcm2711-rpi-cm4.dtb";
+    }
+    {
+      name = "audremap,pins_12_13";
+      dtboFile = "${config.boot.kernelPackages.kernel}/dtbs/overlays/audremap.dtbo";
+      filter = "bcm2711-rpi-cm4.dtb";
+    }
+  ];
 }
