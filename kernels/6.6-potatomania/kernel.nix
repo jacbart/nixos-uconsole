@@ -17,9 +17,8 @@ let
       fetchFromGitHub,
     }:
     let
-      # Version picked from the current (as of 3rd Apr 2024) nixpkgs-unstable branch
-      modDirVersion = "6.1.63";
-      tag = "stable_20231123";
+      modDirVersion = "6.6.51";
+      tag = "stable_20241008";
     in
     linuxPackagesFor (
       linux_rpi4.override {
@@ -31,25 +30,19 @@ let
             owner = "raspberrypi";
             repo = "linux";
             rev = tag;
-            hash = "sha256-4Rc57y70LmRFwDnOD4rHoHGmfxD9zYEAwYm9Wvyb3no=";
+            hash = "sha256-phCxkuO+jUGZkfzSrBq6yErQeO2Td+inIGHxctXbD5U=";
           };
         };
       }
     );
-  # These patches are copied over from:
-  # https://github.com/PotatoMania/uconsole-cm3/tree/1bfce6701e6ac9f1c2fdfc75fcd4cbc184a13813/PKGBUILDs/linux-uconsole-cm3-rpi64
-  #
-  # TODO: find a better way of declare attribution
   patches = [
-    ./patches/0001-video-backlight-Add-OCP8178-backlight-driver.patch
-    ./patches/0002-drm-panel-add-clockwork-cwu50.patch
-    ./patches/0003-driver-staging-add-uconsole-simple-amplifier-switch.patch
-    # The device tree patch is not applied to the kernel at compile time (to avoid rebuild),
-    # but merged later using NixOS' `hardware.deviceTree` confdig.
-    # ./patches/0004-arm-dts-overlays-add-uconsole.patch
-    ./patches/0005-drivers-power-axp20x-customize-PMU.patch
-    ./patches/0006-power-axp20x_battery-implement-calibration.patch
-    ./patches/0007-drm-panel-cwu50-expose-dsi-error-status-to-userspace.patch
+    ./patches/001-OCP8178-backlight-driver.patch
+    ./patches/002-drm-panel-add-clockwork-cwu50.patch
+    ./patches/003-axp20x-power.patch
+    ./patches/004-vc4_dsi-update.patch
+    ./patches/005-bcm2835-audio-staging.patch
+    ./patches/007-drm-panel-cwu50-expose-dsi-error-status-to-userspace.patch
+    ./patches/008-driver-staging-add-uconsole-simple-amplifier-switch.patch
   ];
 in
 {
@@ -63,6 +56,7 @@ in
     "ocp8178-bl"
     "panel-clockwork-cwu50"
     "simple-amplifier-switch"
+    "vc4"
   ];
 
   boot.kernelPatches =
@@ -75,13 +69,11 @@ in
         name = "uconsole-config";
         patch = null;
         structuredExtraConfig = {
-          # Enable the newly patched modules
+          BACKLIGHT_CLASS_DEVICE = pkgs.lib.kernel.yes;
           DRM_PANEL_CLOCKWORK_CWU50 = pkgs.lib.kernel.module;
           SIMPLE_AMPLIFIER_SWITCH = pkgs.lib.kernel.module;
           BACKLIGHT_OCP8178 = pkgs.lib.kernel.module;
 
-          # Port over some configs from the official image
-          # Source: https://jhewitt.net/uconsole
           REGMAP_I2C = pkgs.lib.kernel.yes;
           INPUT_AXP20X_PEK = pkgs.lib.kernel.yes;
           CHARGER_AXP20X = pkgs.lib.kernel.module;
@@ -92,9 +84,10 @@ in
           REGULATOR_AXP20X = pkgs.lib.kernel.yes;
           AXP20X_ADC = pkgs.lib.kernel.module;
           TI_ADC081C = pkgs.lib.kernel.module;
-          CRYPTO_LIB_ARC4 = pkgs.lib.kernel.yes;
+          CRYPTO_LIB_ARC4 = pkgs.lib.kernel.yes; # FIXME
           CRC_CCITT = pkgs.lib.kernel.yes;
         };
       }
     ];
+  systemd.services."serial-getty@ttyS0".enable = false;
 }

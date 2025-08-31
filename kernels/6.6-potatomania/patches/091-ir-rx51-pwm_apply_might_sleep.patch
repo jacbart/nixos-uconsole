@@ -1,0 +1,31 @@
+From 23431052d2dce8084b72e399fce82b05d86b847f Mon Sep 17 00:00:00 2001
+From: Ratchanan Srirattanamet <peathot@hotmail.com>
+Date: Fri, 26 Apr 2024 00:45:15 +0700
+Subject: [PATCH] media/rc/ir-rx51: follow pwm_apply_might_sleep() rename
+
+Fixes: b23e6d7dbd31 ("pwm: Rename pwm_apply_state() to pwm_apply_might_sleep()")
+Signed-off-by: Ratchanan Srirattanamet <peathot@hotmail.com>
+---
+ drivers/media/rc/ir-rx51.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/media/rc/ir-rx51.c b/drivers/media/rc/ir-rx51.c
+index 13e81bf8005df0..39a7e2db63a78b 100644
+--- a/drivers/media/rc/ir-rx51.c
++++ b/drivers/media/rc/ir-rx51.c
+@@ -34,13 +34,13 @@ struct ir_rx51 {
+ static inline void ir_rx51_on(struct ir_rx51 *ir_rx51)
+ {
+ 	ir_rx51->state.enabled = true;
+-	pwm_apply_state(ir_rx51->pwm, &ir_rx51->state);
++	pwm_apply_might_sleep(ir_rx51->pwm, &ir_rx51->state);
+ }
+ 
+ static inline void ir_rx51_off(struct ir_rx51 *ir_rx51)
+ {
+ 	ir_rx51->state.enabled = false;
+-	pwm_apply_state(ir_rx51->pwm, &ir_rx51->state);
++	pwm_apply_might_sleep(ir_rx51->pwm, &ir_rx51->state);
+ }
+ 
+ static int init_timing_params(struct ir_rx51 *ir_rx51)

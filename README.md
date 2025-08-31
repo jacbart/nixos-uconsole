@@ -10,7 +10,7 @@ Many things just doesn't work at the moment, the sd image boots, but it can only
 the HDMI output, and it's impossible to log in since the keyboard doesn't work.
 
 |                   | Does it work? |
-|------------------ | ------------- |
+| ----------------- | ------------- |
 | boot              | ✓             |
 | built-in display  | ✓             |
 | backlight         | ✓             |
@@ -26,7 +26,62 @@ the HDMI output, and it's impossible to log in since the keyboard doesn't work.
 
 ### NixOS module
 
+Using the module in a plain `configuration.nix` (please note that, the `nixos-hardware` value can be
+omitted if `nixos-hardware` is added as a channel):
+
 ```nix
+{...}: let
+    nixos-uconsole = import (builtins.fetchTarball {
+      url = "github.com/jacbart/nixos-uconsole";
+      sha256 = "...";
+    });
+    nixos-hardware = builtins.fetchTarball {
+      url = "https://github.com/NixOS/nixos-hardware/archive/9a763a7acc4cfbb8603bb0231fec3eda864f81c0.zip";
+      sha256 = "1dfpr7aq5avrsagfdxj8rh8jy25sg806dl5m17pp9p529y5fmswn";
+    };
+  in {
+    imports = [
+      (nixos-uconsole.mkNixosModule {
+        kernel = "6.1-potatomania";
+        inherit nixpkgs nixos-hardware;
+      })
+    ];
+
+    # Other configs come here....
+  }
+```
+
+Using the module in a flake:
+
+```nix
+{
+
+  inputs.nixpkgs.url = "nixpkgs/release-25.05";
+  inputs.nixos-hardware.url = "github:NixOS/nixos-hardware/master";
+  inputs.nixos-uconsole.url = "github:jacbart/nixos-uconsole";
+  inputs.nixos-uconsole.inputs.nixpkgs.follows = "nixpkgs";
+  inputs.nixos-uconsole.inputs.nixos-hardware.follows = "nixos-hardware";
+
+
+  outputs = {
+    nixpkgs,
+    nixos-hardware,
+    nixos-uconsole,
+    ...
+  }: let
+    user-module = {...}: {
+      # your config comes here
+    };
+  in
+    nixosConfigurations.uconsole = nixpkgs.lib.nixosSystem {
+      system = "aarch64-linux";
+      modules = [
+        nixos-uconsole.nixosModules.default
+        nixos-uconsole.nixosModules."kernel-6.1-potatomania"
+        user-module
+      ];
+    };
+}
 ```
 
 ### SD card image
@@ -67,6 +122,5 @@ The available images, and NixOS modules are all discoverable using `nix flake sh
 
 ## Sources
 
-- Kernel patches from  : https://github.com/PotatoMania/uconsole-cm3
+- Kernel patches from : https://github.com/PotatoMania/uconsole-cm3
 - Kernel config changes: https://jhewitt.net/uconsole
-

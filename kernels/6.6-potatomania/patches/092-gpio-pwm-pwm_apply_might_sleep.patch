@@ -1,0 +1,33 @@
+From 879f34b88c60dd59765caa30576cb5bfb8e73c56 Mon Sep 17 00:00:00 2001
+From: Ratchanan Srirattanamet <peathot@hotmail.com>
+Date: Fri, 26 Apr 2024 00:44:25 +0700
+Subject: [PATCH] drivers/gpio/gpio-pwm: follow pwm_apply_might_sleep() rename
+
+Fixes: b23e6d7dbd31 ("pwm: Rename pwm_apply_state() to pwm_apply_might_sleep()")
+Signed-off-by: Ratchanan Srirattanamet <peathot@hotmail.com>
+---
+ drivers/gpio/gpio-pwm.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/gpio/gpio-pwm.c b/drivers/gpio/gpio-pwm.c
+index 4a718b365a6fca..1dbdf8717eb3b9 100644
+--- a/drivers/gpio/gpio-pwm.c
++++ b/drivers/gpio/gpio-pwm.c
+@@ -34,7 +34,7 @@ static void pwm_gpio_set(struct gpio_chip *gc, unsigned int off, int val)
+ 
+ 	pwm_get_state(pwm_gpio->pwm[off], &state);
+ 	state.duty_cycle = val ? state.period : 0;
+-	pwm_apply_state(pwm_gpio->pwm[off], &state);
++	pwm_apply_might_sleep(pwm_gpio->pwm[off], &state);
+ }
+ 
+ static int pwm_gpio_parse_dt(struct pwm_gpio *pwm_gpio,
+@@ -79,7 +79,7 @@ static int pwm_gpio_parse_dt(struct pwm_gpio *pwm_gpio,
+ 		pwm_init_state(pwm_gpio->pwm[i], &state);
+ 
+ 		state.duty_cycle = 0;
+-		pwm_apply_state(pwm_gpio->pwm[i], &state);
++		pwm_apply_might_sleep(pwm_gpio->pwm[i], &state);
+ 	}
+ 
+ 	pwm_gpio->gc.ngpio = num_gpios;

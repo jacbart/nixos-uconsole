@@ -1,37 +1,46 @@
-{nixpkgs, ...}: {
+nixpkgs:
+{
   pkgs,
   lib,
   config,
   ...
-}: {
+}:
+{
   imports = [
     "${nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
   ];
 
   options = {
-    uconsole.boot.configTxt = with lib;
+    uconsole.boot.configTxt =
+      with lib;
       mkOption {
-        type = types.string;
+        type = types.str;
       };
-    uconsole.boot.kernel.crossBuild = with lib;
+    uconsole.boot.kernel.crossBuild =
+      with lib;
       mkOption {
         type = types.bool;
       };
   };
 
   config = {
-    boot.kernelParams = ["console=serial0,115200" "console=tty1"];
+    boot.kernelParams = [
+      "console=serial0,115200"
+      "console=tty1"
+    ];
 
     system.stateVersion = "23.11";
 
     sdImage.compressImage = false;
-    sdImage.populateFirmwareCommands = let
-      configTxt = pkgs.writeText "config.txt" config.uconsole.boot.configTxt;
-    in ''
-      # Add the config
-      rm -f firmware/config.txt
-      cp ${configTxt} firmware/config.txt
-    '';
+    sdImage.populateFirmwareCommands =
+      let
+        configTxt = pkgs.writeText "config.txt" config.uconsole.boot.configTxt;
+      in
+      ''
+        # Add the config
+        rm -f firmware/config.txt
+        cp ${configTxt} firmware/config.txt
+      '';
 
     networking.networkmanager.enable = true;
     powerManagement.cpuFreqGovernor = "ondemand";
@@ -43,7 +52,11 @@
     users.users.nixos = {
       password = "nixos";
       isNormalUser = true;
-      extraGroups = ["wheel" "networkmanager" "video"];
+      extraGroups = [
+        "wheel"
+        "networkmanager"
+        "video"
+      ];
       shell = pkgs.bashInteractive;
     };
 
