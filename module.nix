@@ -27,6 +27,8 @@ nixpkgs:
     boot.kernelParams = [
       "console=serial0,115200"
       "console=tty1"
+      # LTE module on USB: autosuspend often causes reconnect glitches / flaky DSI power.
+      "usbcore.autosuspend=-1"
     ];
 
     system.stateVersion = "23.11";
@@ -43,6 +45,7 @@ nixpkgs:
       '';
 
     networking.networkmanager.enable = true;
+    networking.modemmanager.enable = true;
     powerManagement.cpuFreqGovernor = "ondemand";
     services.openssh.enable = true;
 

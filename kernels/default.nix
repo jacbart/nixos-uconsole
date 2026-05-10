@@ -19,4 +19,14 @@ nixpkgs: nixos-hardware: {
     imports = [ (import ./6.6-potatomania nixpkgs nixos-hardware) ];
     uconsole.boot.kernel.crossBuild = true;
   };
+  "7.0-potatomania" =
+    { ... }:
+    {
+      imports = [ (import ./7.0-potatomania nixpkgs nixos-hardware) ];
+      uconsole.boot.kernel.crossBuild = false;
+    };
+  "7.0-potatomania-cross-build" = {
+    imports = [ (import ./7.0-potatomania nixpkgs nixos-hardware) ];
+    uconsole.boot.kernel.crossBuild = true;
+  };
 }
