@@ -27,7 +27,7 @@ The flake exposes `nixosModules."kernel-<name>"` for each tree under `kernels/`.
 
 | Module name            | Linux (Raspberry Pi fork) | Notes                    |
 | ---------------------- | ------------------------- | ------------------------ |
-| `kernel-7.0-potatomania` | 7.0.y (`rpi-7.0.y` branch tip, see `kernels/7.0-potatomania/kernel.nix`) | Default in this repo’s sample flake |
+| `kernel-7.0-potatomania` | 7.0.14 (`rpi-7.0.y` @ `42d9bb9`, see `kernels/7.0-potatomania/kernel.nix`) | Default in this repo’s sample flake |
 | `kernel-6.6-potatomania` | 6.6 + `stable_20241008`     | Previous default         |
 | `kernel-6.1-potatomania` | 6.1 + `stable_20231123`     | Legacy                   |
 

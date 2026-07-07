@@ -17,11 +17,11 @@ let
       fetchFromGitHub,
     }:
     let
-      # Raspberry Pi fork: branch rpi-7.0.y @ bfd983e7082c9a647a364db0438e06db814e91c4 (Linux 7.0.3).
-      # Update `rev` + `hash` together; use `nix hash path --sri` on unpacked sources or the
+      # Raspberry Pi fork: branch rpi-7.0.y @ 42d9bb9081f1c55e11abb5cbf4d7bede01d7bdde (Linux 7.0.14).
+      # Update `rev` + `hash` together; use `nix flake prefetch github:raspberrypi/linux/<rev>` or the
       # hash-mismatch hint from `nix build`. Requires recent nixpkgs (linux_rpi4 recipe).
-      modDirVersion = "7.0.3";
-      rev = "bfd983e7082c9a647a364db0438e06db814e91c4";
+      modDirVersion = "7.0.14";
+      rev = "42d9bb9081f1c55e11abb5cbf4d7bede01d7bdde";
     in
     linuxPackagesFor (
       linux_rpi4.override {
@@ -33,7 +33,7 @@ let
             owner = "raspberrypi";
             repo = "linux";
             inherit rev;
-            hash = "sha256-yczC/NnvUSlhMDNBnWBnvdH2glBFGOusGik1XZwbHdQ=";
+            hash = "sha256-EqElJi0r40+F9LgeTQlJgfjqIFKthOKbG967IuxjxbA=";
           };
         };
       }

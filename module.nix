@@ -8,22 +8,14 @@ nixpkgs:
 {
   imports = [
     "${nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
+    ./options.nix
   ];
 
-  options = {
-    uconsole.boot.configTxt =
-      with lib;
-      mkOption {
-        type = types.str;
-      };
-    uconsole.boot.kernel.crossBuild =
-      with lib;
-      mkOption {
-        type = types.bool;
-      };
-  };
-
   config = {
+    # The sd-image profile enables ZFS, but the ZFS kernel module does not
+    # (yet) build against the rpi-7.x kernels.
+    boot.supportedFilesystems.zfs = lib.mkForce false;
+
     boot.kernelParams = [
       "console=serial0,115200"
       "console=tty1"

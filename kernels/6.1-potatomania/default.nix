@@ -3,6 +3,7 @@ nixpkgs: nixos-hardware:
 {
   imports = [
     "${nixos-hardware}/raspberry-pi/4"
+    ../common.nix
     (import ./kernel.nix nixpkgs)
   ];
 
