@@ -1,26 +1,39 @@
+From 5ebb8e0cd72872ea3f691021332793ff669491a8 Mon Sep 17 00:00:00 2001
+From: Potato <nikko@faint.day>
+Date: Fri, 13 Oct 2023 11:08:40 +0800
+Subject: [PATCH 3/6] driver: staging: add uconsole simple amplifier switch
+
+---
+ drivers/staging/Kconfig                       |   2 +
+ drivers/staging/Makefile                      |   1 +
+ drivers/staging/uconsole/Kconfig              |  10 ++
+ drivers/staging/uconsole/Makefile             |   1 +
+ .../uconsole/simple-amplifier-switch.c        | 131 ++++++++++++++++++
+ 5 files changed, 145 insertions(+)
+ create mode 100644 drivers/staging/uconsole/Kconfig
+ create mode 100644 drivers/staging/uconsole/Makefile
+ create mode 100644 drivers/staging/uconsole/simple-amplifier-switch.c
+
 diff --git a/drivers/staging/Kconfig b/drivers/staging/Kconfig
-index f9aef39cac2e..89b845d8132c 100644
+index 075e775d3868..f5ff50f057db 100644
 --- a/drivers/staging/Kconfig
 +++ b/drivers/staging/Kconfig
-@@ -46,4 +46,6 @@ source "drivers/staging/axis-fifo/Kconfig"
+@@ -50,4 +50,6 @@ source "drivers/staging/vme_user/Kconfig"
  
- source "drivers/staging/vme_user/Kconfig"
+ source "drivers/staging/gpib/Kconfig"
  
 +source "drivers/staging/uconsole/Kconfig"
 +
  endif # STAGING
 diff --git a/drivers/staging/Makefile b/drivers/staging/Makefile
-index ffa70dda481d..596bbc7760f1 100644
+index e681e403509c..022d292ac91d 100644
 --- a/drivers/staging/Makefile
 +++ b/drivers/staging/Makefile
-@@ -2,6 +2,7 @@
- # Makefile for staging directory
- 
- obj-y				+= media/
+@@ -14,3 +14,4 @@ obj-$(CONFIG_GREYBUS)		+= greybus/
+ obj-$(CONFIG_BCM2835_VCHIQ)	+= vc04_services/
+ obj-$(CONFIG_XIL_AXIS_FIFO)	+= axis-fifo/
+ obj-$(CONFIG_GPIB)	 	+= gpib/
 +obj-y				+= uconsole/
- obj-$(CONFIG_RTL8723BS)		+= rtl8723bs/
- obj-$(CONFIG_OCTEON_ETHERNET)	+= octeon/
- obj-$(CONFIG_VME_BUS)		+= vme_user/
 diff --git a/drivers/staging/uconsole/Kconfig b/drivers/staging/uconsole/Kconfig
 new file mode 100644
 index 000000000000..303e2e26a0b1
@@ -29,14 +42,14 @@ index 000000000000..303e2e26a0b1
 @@ -0,0 +1,10 @@
 +# SPDX-License-Identifier: GPL-2.0
 +config SIMPLE_AMPLIFIER_SWITCH
-+	tristate "Simple amplifier switch driver"
-+	depends on OF
-+	depends on GPIOLIB
-+	default n
-+	help
-+	  Driver for simple gpio based switches. This can control a series of
-+	  gpios with another one. Used to control amplifiers with headphone
-+	  detect pin on uConsole.
++    tristate "Simple amplifier switch driver"
++    depends on OF
++    depends on GPIOLIB
++    default n
++    help
++        Driver for simple gpio based switches. This can control a series of
++        gpios with another one. Used to control amplifiers with headphone
++        detect pin on uConsole.
 diff --git a/drivers/staging/uconsole/Makefile b/drivers/staging/uconsole/Makefile
 new file mode 100644
 index 000000000000..8f3239c1f36c
@@ -181,3 +194,7 @@ index 000000000000..2471e035c213
 +MODULE_AUTHOR("PotatoMania <nikko@faint.day>");
 +MODULE_DESCRIPTION("A simple GPIO controlled gpios switch");
 +MODULE_LICENSE("GPL v2");
+\ No newline at end of file
+-- 
+2.51.0
+

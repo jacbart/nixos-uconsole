@@ -1,0 +1,35 @@
+[all]
+# Boot in 64-bit mode; U-Boot needs the UART regardless of console usage.
+arm_64bit=1
+enable_uart=1
+
+# Chainload U-Boot (installed as u-boot.bin by nixos-hardware).
+kernel=u-boot.bin
+
+# Otherwise the resolution will be weird in most cases.
+disable_overscan=1
+max_framebuffers=2
+
+# Supported in newer board revisions
+arm_boost=1
+
+# Prevent the firmware from smashing the framebuffer setup done by the
+# mainline kernel when attempting to show low-voltage or overtemperature
+# warnings.
+avoid_warnings=1
+
+# ------------------------
+ignore_lcd=1
+disable_fw_kms_setup=1
+disable_audio_dither
+pwm_sample_bits=20
+
+# setup headphone detect pin
+gpio=10=ip,np
+# backlight on as early as possible (GPIO9)
+gpio=9=op,dh
+
+dtparam=audio=on
+dtparam=ant2
+# dtparam=spi=on
+# ------------------------

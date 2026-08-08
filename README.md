@@ -25,13 +25,23 @@ The SD image is best verified with a display attached; serial console is configu
 
 The flake exposes `nixosModules."kernel-<name>"` for each tree under `kernels/`. Examples:
 
-| Module name            | Linux (Raspberry Pi fork) | Notes                    |
-| ---------------------- | ------------------------- | ------------------------ |
-| `kernel-7.0-potatomania` | 7.0.14 (`rpi-7.0.y` @ `42d9bb9`, see `kernels/7.0-potatomania/kernel.nix`) | Default in this repo’s sample flake |
-| `kernel-6.6-potatomania` | 6.6 + `stable_20241008`     | Previous default         |
-| `kernel-6.1-potatomania` | 6.1 + `stable_20231123`     | Legacy                   |
+| Module name              | Linux                                   | Notes                                                                     |
+| ------------------------ | --------------------------------------- | ------------------------------------------------------------------------- |
+| `kernel-6.18-potatomania`  | 6.18 LTS (`rpi-6.18.y` via nixos-hardware) | Default. Kernel is nixos-hardware's; only uConsole patches live here. |
+| `kernel-6.6-potatomania`   | 6.6 + `stable_20241008` (nixpkgs `linux_rpi4`) | Legacy fallback                                                   |
+| `kernel-6.1-potatomania`   | 6.1 + `stable_20231123` (nixpkgs `linux_rpi4`) | Legacy                                                            |
 
-Cross-built kernel variants use the same logical name with a `-cross-build` suffix (e.g. `kernel-7.0-potatomania-cross-build`). They set `uconsole.boot.kernel.crossBuild = true` for toolchain convenience; building still targets `aarch64-linux`.
+`kernel-6.18-potatomania` builds no kernel itself: it takes `boot.kernelPackages` from
+[nixos-hardware](https://github.com/NixOS/nixos-hardware)'s `raspberry-pi/4` module
+(currently 6.18.34, `stable_20260609`) and adds the uConsole patch set via
+`boot.kernelPatches` (OCP8178 backlight, CWU50 DSI panel, AXP20x PMU/fast-charge,
+simple-amplifier-switch). The firmware partition (GPU blobs, U-Boot, `config.txt`) is
+populated by nixos-hardware's `raspberry-pi/common/firmware.nix`; the variant's
+`uconsole.boot.configTxt` is wired into `hardware.raspberry-pi.configtxt.file`.
+
+Cross-built kernel variants exist for the legacy trees with a `-cross-build` suffix
+(e.g. `kernel-6.6-potatomania-cross-build`); they set `uconsole.boot.kernel.crossBuild = true`.
+There is no 6.18 cross-build entry — there is no local kernel derivation to cross-compile.
 
 Discover the full list:
 
@@ -58,7 +68,7 @@ Using the module in a plain `configuration.nix` (the `nixos-hardware` argument c
   in {
     imports = [
       (nixos-uconsole.mkNixosModule {
-        kernel = "7.0-potatomania";
+        kernel = "6.18-potatomania";
         inherit nixpkgs nixos-hardware;
       })
     ];
@@ -93,7 +103,7 @@ Using the module in a flake:
       system = "aarch64-linux";
       modules = [
         nixos-uconsole.nixosModules.default
-        nixos-uconsole.nixosModules."kernel-7.0-potatomania"
+        nixos-uconsole.nixosModules."kernel-6.18-potatomania"
         user-module
       ];
     };
@@ -114,45 +124,53 @@ To use a different kernel module, add the matching `nixos-uconsole.nixosModules.
 
 ## Updating the kernel (maintainers)
 
-Patches live in `kernels/<version>-potatomania/patches/` and are applied in lexicographic order via `boot.kernelPatches` in `kernel.nix`. When bumping the Raspberry Pi kernel tree:
+### 6.18 variant (nixos-hardware kernel)
 
-1. **Pick a revision** on [raspberrypi/linux](https://github.com/raspberrypi/linux): branch `rpi-7.0.y` (or newer `rpi-7.x.y` when you add another variant). Prefer a **tag** or **commit hash** for reproducibility, not a floating branch name, in `fetchFromGitHub.rev`.
+The kernel source pin (`modDirVersion`/`tag`/`hash`) lives in nixos-hardware's
+`raspberry-pi/common/kernel.nix`; bump the `nixos-hardware` flake input to move kernels.
+Patches live in `kernels/6.18-potatomania/patches/` and are applied in order via
+`boot.kernelPatches` in `kernel.nix`. After a nixos-hardware bump:
 
-2. **Set `modDirVersion`** in `kernels/<variant>/kernel.nix` to match that tree’s `VERSION`, `PATCHLEVEL`, and `SUBLEVEL` in its top-level `Makefile` (e.g. `7.0.3`).
-
-3. **Update the fixed-output hash** for `fetchFromGitHub`. After a failed build, Nix prints the expected `sha256-...` SRI hash; you can also unpack the same commit and run:
+1. Find the new pin in nixos-hardware's `kernel.nix`, then fetch and unpack that tree:
    ```bash
-   nix hash path --sri /path/to/unpacked/linux-sources
+   curl -L -o linux.tar.gz https://github.com/raspberrypi/linux/archive/refs/tags/<tag>.tar.gz
+   tar xzf linux.tar.gz
    ```
-   (layout should match GitHub’s archive after stripping one top-level directory, same as Nix’s `fetchFromGitHub`.)
-
-4. **Refresh patches**: extract the new tree, then for each patch:
+2. For each patch, in patch order:
    ```bash
    patch -p1 --dry-run < path/to/patch
    ```
-   On failure, re-apply manually or recreate the diff with `diff -u`. Drop patches that are already upstream. VC4/DSI and AXP power-supply code are frequent conflict spots when jumping many releases.
+   On failure, re-apply manually or recreate the diff with `diff -u`. The patch set
+   tracks [PotatoMania/uconsole-cm3](https://github.com/PotatoMania/uconsole-cm3)
+   (`PKGBUILDs/linux-uconsole-rpi64`, currently targeting `rpi-6.16.y`) — check there
+   first for an updated patch before hand-porting. VC4/DSI and AXP power-supply code
+   are frequent conflict spots when jumping many releases.
+3. **Validate**: `nix eval '.#nixosConfigurations.uconsole.config.boot.kernelPackages.kernel.version'`
+   should succeed, then `nix build` `config.boot.kernelPackages.kernel` (needs an
+   `aarch64-linux`-capable builder).
+4. **Device check** after flashing: boot, built-in display, keyboard, Wi‑Fi, power/battery behavior.
 
-5. **Register the variant** in `kernels/default.nix` (native + optional `-cross-build` entry).
+### Legacy 6.1/6.6 variants (nixpkgs `linux_rpi4`)
 
-6. **Validate**: `nix eval '.#nixosConfigurations.uconsole.config.boot.kernelPackages.kernel.version'` (or your config) should succeed. A full `nix build` of `config.boot.kernelPackages.kernel` or `system.build.sdImage` needs an `aarch64-linux`-capable builder.
-
-7. **Device check** after flashing: boot, built-in display, keyboard, Wi‑Fi, power/battery behavior.
-
-PotatoMania’s tree is a useful reference ([uconsole-cm3](https://github.com/PotatoMania/uconsole-cm3)); this repo carries its own patch set and does not track it automatically.
+These override nixpkgs' `linux_rpi4` with a pinned `fetchFromGitHub` in
+`kernels/<variant>/kernel.nix` (`rev` + `hash` + `modDirVersion`). Update the pin there
+and refresh `kernels/<variant>/patches/` the same way as above. Nixpkgs has deprecated
+`linux_rpi*` in favour of the nixos-hardware kernel; expect these variants to be removed
+rather than updated.
 
 ## Development
 
-Cross compilation is selected by importing the `*-cross-build` kernel module from `kernels/default.nix`, which sets `uconsole.boot.kernel.crossBuild = true` (see `kernels/<version>-potatomania/kernel.nix` and `lib.nix`).
+Cross compilation is selected by importing the `*-cross-build` kernel module from `kernels/default.nix`, which sets `uconsole.boot.kernel.crossBuild = true` (see `kernels/<version>-potatomania/kernel.nix` and `lib.nix`). Only the legacy variants use it.
 
 For cross builds you typically use an `x86_64-linux` machine with `pkgsCross.aarch64-multiplatform` style tooling as wired in this repo’s `callPackagesCrossAarch64` helper.
 
-After flashing, ensure `/boot/config.txt` matches the snippets from the active kernel directory (e.g. `kernels/7.0-potatomania/config.txt`) if you customize firmware behaviour.
+After flashing, `/boot/firmware/config.txt` is produced from the active variant's
+`uconsole.boot.configTxt` (reference copies: `kernels/<variant>/config.txt`).
 
 `nix flake show` lists all exported `nixosModules`.
 
-Nixpkgs may print a note that the `linux-rpi` attribute is deprecated in favour of patterns from `nixos-hardware`; this flake still uses `linux_rpi4` overrides until that migration is done upstream in a compatible way.
-
 ## Sources
 
-- Kernel patches inspired by: https://github.com/PotatoMania/uconsole-cm3
+- Kernel patches: https://github.com/PotatoMania/uconsole-cm3 (dev branch, `PKGBUILDs/linux-uconsole-rpi64`)
 - Kernel config changes: https://jhewitt.net/uconsole
+- Official ClockworkPi CM4 patch/config: https://github.com/clockworkpi/uConsole (`Code/patch/cm4`)

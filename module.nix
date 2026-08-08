@@ -12,29 +12,12 @@ nixpkgs:
   ];
 
   config = {
-    # The sd-image profile enables ZFS, but the ZFS kernel module does not
-    # (yet) build against the rpi-7.x kernels.
-    boot.supportedFilesystems.zfs = lib.mkForce false;
-
-    boot.kernelParams = [
-      "console=serial0,115200"
-      "console=tty1"
-      # LTE module on USB: autosuspend often causes reconnect glitches / flaky DSI power.
-      "usbcore.autosuspend=-1"
-    ];
+    # zfs / kernelParams / config.txt firmware handling live in
+    # kernels/common.nix so they apply to every kernel variant.
 
     system.stateVersion = "23.11";
 
     sdImage.compressImage = false;
-    sdImage.populateFirmwareCommands =
-      let
-        configTxt = pkgs.writeText "config.txt" config.uconsole.boot.configTxt;
-      in
-      ''
-        # Add the config
-        rm -f firmware/config.txt
-        cp ${configTxt} firmware/config.txt
-      '';
 
     networking.networkmanager.enable = true;
     networking.modemmanager.enable = true;

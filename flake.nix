@@ -19,7 +19,7 @@
         system = "aarch64-linux";
         modules = [
           self.outputs.nixosModules.default
-          self.outputs.nixosModules."kernel-7.0-potatomania"
+          self.outputs.nixosModules."kernel-6.18-potatomania"
         ];
       };
 
