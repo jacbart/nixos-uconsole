@@ -33,6 +33,12 @@ let
       SIMPLE_AMPLIFIER_SWITCH = lib.kernel.module;
       BACKLIGHT_OCP8178 = lib.kernel.module;
 
+      # The CM4's WiFi power sequencer (wifi-pwrseq) drives WL_REG_ON via the
+      # firmware GPIO expander (expgpio 1). bcm2711_defconfig does NOT build
+      # the expander driver, so pwrseq_simple stays in deferred probe forever
+      # ("reset control not ready") and mmc3 (SDIO WiFi) never enumerates.
+      GPIO_RASPBERRYPI_EXP = lib.kernel.yes;
+
       REGMAP_I2C = lib.kernel.yes;
       INPUT_AXP20X_PEK = lib.kernel.yes;
       CHARGER_AXP20X = lib.kernel.module;
