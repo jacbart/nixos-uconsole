@@ -37,18 +37,12 @@
 	fragment@90 {
         target-path = "/";
 		__overlay__ {
-			wifi_pwrseq: wifi-pwrseq {
-				compatible = "mmc-pwrseq-simple";
-
-				// From potatomania
-				// pinctrl-names = "default";
-				// pinctrl-0 = <&wifi_rst_pin>;
-				// reset-gpios = <&gpio 3 1>; /* GPIO3, GPIO_ACTIVE_LOW */
-				// post-power-on-delay-ms = <200>;
-
-				// Official from clockwork
-				reset-gpios = <&gpio 3 0>;
-			};
+			/* No wifi-pwrseq here: on the CM4 the onboard radio hangs off
+			 * &mmcnr (GPIO34-39) and the GPU firmware drives WL_ON
+			 * (expgpio 1); the vendor cm4 dts deliberately deletes the
+			 * pwrseq node. The CM3-era node that used to live here
+			 * (reset-gpios = <&gpio 3>) sent pwrseq_simple into an
+			 * endless deferred probe and blocked SDIO enumeration. */
 
 			audio_amplifier: audio-amplifier {
 				compatible = "simple-amplifier-switch";
@@ -94,125 +88,27 @@
 		};
 	};
 
-	fragment@91 {
-		/* BT */
-		target = <&uart0>;
-		__overlay__ {
-			pinctrl-names = "default";
-			pinctrl-0 = <&uart0_pins &bt_pins>;
-			status = "okay";
-
-			bt: bluetooth {
-				compatible = "brcm,bcm4345c5";
-				interrupt-parent = <&gpio>;
-				interrupts = <6 4>; /* GPIO6, IRQ_TYPE_LEVEL_HIGH */
-				interrupt-names = "host-wake";
-				device-wakeup-gpios = <&gpio 7 0>; /* GPIO7, GPIO_ACTIVE_HIGH */
-				brcm,requires-autobaud-mode;
-				shutdown-gpios = <&gpio 5 0>; /* GPIO5, GPIO_ACTIVE_HIGH */
-				/* max-speed: datasheet shows max speed is 4000000,
-				* however, approperate speed must be set to ensure overall wireless performance.
-				*/
-				max-speed = <1500000>;
-				vbat-supply = <&reg_dldo1>;
-				vddio-supply = <&reg_aldo3>;
-			};
-		};
-	};
-
-	fragment@92 {
-		/* WLAN */
-
-		// From potatomania
-		/* The general purpose SDHCI interface(SD1) */
-		// target = <&mmc>;
-		// __overlay__ {
-		// 	pinctrl-0 = <&sdio_gpio22>;
-		// 	pinctrl-names = "default";
-		// 	mmc-pwrseq = <&wifi_pwrseq>;
-		// 	// non-removable; /* don't use this, so the chip can be reliably initialized */
-		// 	bus-width = <4>;
-		// 	status = "okay";
-		// 	#address-cells = <1>;
-		// 	#size-cells = <0>;
-		// 	vmmc-supply = <&reg_dldo1>;
-		// 	vqmmc-supply = <&reg_aldo3>;
-
-		// 	brcmf: wifi@1 {
-		// 		reg = <1>;
-		// 		compatible = "brcm,bcm43456-fmac", "brcm,bcm4329-fmac";
-		// 		/* The interrupt will not registered on CM3, so skip below */
-		// 		// interrupt-parent = <&gpio>;
-		// 		// interrupts = <4 8>; /* GPIO4, IRQ_TYPE_LEVEL_LOW */
-		// 		// interrupt-names = "host-wake";
-		// 	};
-		// };
-
-		// Official, clockwork
-	};
-
-	fragment@94 {
-		target = <&mmc>;
-		sdio_ovl: __overlay__ {
-			pinctrl-0 = <&sdio_ovl_pins>;
-			pinctrl-names = "default";
-			non-removable;
-			bus-width = <4>;
-			status = "okay";
-		};
-	};
-
-	fragment@95 {
-		target = <&gpio>;
-		__overlay__ {
-			sdio_ovl_pins: sdio_ovl_pins {
-				brcm,pins = <22 23 24 25 26 27>;
-				brcm,function = <7>; /* ALT3 = SD1 */
-				brcm,pull = <0 2 2 2 2 2>;
-			};
-		};
-	};
-
-	fragment@93 {
-		/* disable the mmc interface without polling */
-		target = <&mmcnr>;
-		__overlay__ {
-			status = "disabled";
-		};
-	};
+	/* No BT/WLAN fragments (old fragment@91..95) on the CM4:
+	 * - BT lives on uart0 (GPIO30-33) with BT_ON on expgpio 0, wired up by
+	 *   the vendor bcm271x-rpi-bt.dtsi + bcm2711-rpi-cm4.dts. The CM3-era
+	 *   bt node that used to be here (GPIO5/6/7) broke hci0 reset (-110).
+	 * - WiFi is on &mmcnr (fe300000, GPIO34-39); the old fragment@94
+	 *   enabled &mmc on the same MMIO with GPIO22-27 (CM3 mainboard radio
+	 *   wiring), which is pure conflict on a CM4.
+	 * - The old fragment@93 disabled &mmcnr entirely.
+	 * The trailing sdio_gpio22/uart0_pins/bt_pins/wifi_rst_pin pin nodes
+	 * were dropped for the same reason (they also collided with the
+	 * vendor's own uart0_pins/bt_pins, repointing BT at GPIO14-17). */
 
 	__overrides__ {
 		cm4 = <0>,"-91-92-93"; // disable BT, WiFi on uConsole main board, and other fixes for CM3
 	};
 };
 
-&gpio {
-	sdio_gpio22: sdio_gpio22 {
-		brcm,pins = <22 23 24 25 26 27>;
-		brcm,function = <7>; /* ALT3 = SD1 */
-		brcm,pull = <0 0 0 0 0 0>; /* NP(0)*6, oe NP, PU(2)*5 */
-	};
-
-	/* UART0 with CTS/RTS on GPIO14-17 */
-	uart0_pins: uart0_pins {
-		brcm,pins = <14 15 16 17>;
-		brcm,function = <4 4 7 7>;
-		brcm,pull = <0 2 0 2>;
-	};
-
-	/* bt reset and interrupts */
-	bt_pins: bt_pins {
-		brcm,pins = <5 6 7>;
-		brcm,function = <1 0 1>;
-		brcm,pull = <0 2 0>;
-	};
-
-	wifi_rst_pin: wifi_rst_pin {
-		brcm,pins = <3>;
-		brcm,function = <1>;
-		brcm,pull = <2>;
-	};
-};
+/* Trailing sdio_gpio22/uart0_pins/bt_pins/wifi_rst_pin nodes removed: they
+ * only served the deleted CM3-era BT/WLAN fragments, and the uart0_pins /
+ * bt_pins labels collide with the vendor's own nodes under &gpio (silently
+ * repointing the CM4's BT uart at GPIO14-17 instead of GPIO30-33). */
 
 &leds {
 	/delete-node/ led-act;
