@@ -110,6 +110,34 @@
  * bt_pins labels collide with the vendor's own nodes under &gpio (silently
  * repointing the CM4's BT uart at GPIO14-17 instead of GPIO30-33). */
 
+/* The vendor dtb ships bt_pins as an empty placeholder that the RPi
+ * firmware's krnbt overlay normally fills with the board-specific CTS/RTS
+ * wiring. That firmware fixup never happens in our boot flow, so uart0's
+ * pinctrl-0 = <&uart0_pins &bt_pins> stays half-invalid
+ * ("there is not valid maps for state default"), the PL011 never muxes its
+ * pins, and the BCM43455 stays silent (hci0 reset -110, BD 00:00:00).
+ * Fill it ourselves with the CM4 wiring, mirroring the vendor's own
+ * uart0-ctsrts-gpio30 node: CTS=GPIO30 alt3 pull-up, RTS=GPIO31 alt3. */
+&bt_pins {
+	brcm,pins = <30 31>;
+	brcm,function = <7>; /* alt3 */
+	brcm,pull = <2 0>;   /* CTS pull-up, RTS none */
+};
+
+/* 4G extension power-enable (BCM19, wPi24 in clockwork's uconsole-4g-cm4
+ * script) must stay driven for as long as the modem is on. A userspace
+ * gpioset holder gets killed when its oneshot service finishes (cgroup
+ * kill), dropping the line — so hold it in the kernel as a gpio-hog.
+ * The power-key pulse (BCM14) stays in the uconsole-4g-enable service. */
+&gpio {
+	uconsole_4g_power {
+		gpio-hog;
+		gpios = <19 GPIO_ACTIVE_HIGH>;
+		output-high;
+		line-name = "uconsole-4g-power";
+	};
+};
+
 &leds {
 	/delete-node/ led-act;
 
